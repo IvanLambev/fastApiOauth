@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .logout {
+            margin-top: 20px;
+        }
+        a {
+            text-decoration: none;
+            color: #fff;
+            background-color: #fb2650; /* your favorite color */
+            padding: 10px 15px;
+            border-radius: 5px;
+        }
+        a:hover {
+            background-color: #e41e4d;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Welcome, {{ full_name }}!</h1>
+    <p>Your username is: <strong>{{ username }}</strong></p>
+    <div class="logout">
+        <a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+</head>
+<body>
+<h1>Welcome to the Home Page,</h1>
+<!--Fetch the current user and display the username-->
+{% if current_user %}
+    <h2>{{ current_user.username }}</h2>
+{% endif %}
+<a href="/signup">Sign Up</a>
+<br>
+<a href="/login/github">Sign In with GitHub</a>
+<br>
+<a href="/login"> Log In</a>
+<br>
+<a href="http://127.0.0.1:8000/me"> Profile</a>
+</body>
+</html>
