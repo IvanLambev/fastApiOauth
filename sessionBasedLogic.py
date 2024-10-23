@@ -13,6 +13,13 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import declarative_base
 
 import uvicorn
+import configparser
+
+import asyncio
+import platform
+
+if platform.system() == "Windows":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 # Initialize FastAPI and add session middleware
 app = FastAPI()
@@ -26,17 +33,37 @@ Base = declarative_base()
 
 templates = Jinja2Templates(directory="templates")
 
+
 # GitHub OAuth credentials
-with open ("things.txt", "r") as file:
-    CLIENT_ID = file.readline().strip()
-    CLIENT_SECRET = file.readline().strip()
-    print(f"Client ID: {CLIENT_ID}, Client Secret: {CLIENT_SECRET}")
+
 
 # CLIENT_ID = "Iv23liAxUCpqD2GzvkYQ"
 # CLIENT_SECRET = "e7a3c18a5ebd130c5f71eb3b779ee66887ddb8b0"
 
+def get_github_credentials():
+    config = configparser.ConfigParser()  # Correctly instantiate ConfigParser
+    config.read('config.ini')
+
+    client_id = config['github']['CLIENT_ID']
+    client_secret = config['github']['CLIENT_SECRET']
+
+    return client_id, client_secret
+
+
+# Use the function
+CLIENT_ID, CLIENT_SECRET = get_github_credentials()
+
 # Password hashing setup
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+@app.middleware("http")
+async def redirect_http_to_https(request: Request, call_next):
+    if request.url.scheme != "https":
+        url = request.url.replace(scheme="https", netloc=request.url.netloc)
+        return RedirectResponse(url=url)
+    response = await call_next(request)
+    return response
 
 
 # SQLAlchemy model for user
@@ -124,7 +151,7 @@ async def auth_callback(request: Request, code: str, db: Session = Depends(get_d
 
 @app.get("/login/github")
 async def login_github():
-    redirect_uri = "http://localhost:8000/auth/callback"
+    redirect_uri = "https://localhost:8000/auth/callback"
     return RedirectResponse(
         url=f"https://github.com/login/oauth/authorize?client_id={CLIENT_ID}&redirect_uri={redirect_uri}&scope=user:email"
     )
@@ -192,7 +219,24 @@ async def home(request: Request):
     username = request.session.get("username")
     return templates.TemplateResponse("index.html", {"request": request, "username": username})
 
+import os
 
 if __name__ == "__main__":
+    # # Check if the files exist before starting uvicorn
+    # print(os.path.exists(r"./certs/myCA.pem"))
+    # print(os.path.exists(r"./certs/myCA.key"))
+    # print(os.path.exists(r"./certs/hellfish.test.crt"))
 
-    uvicorn.run("sessionBasedLogic:app", host="127.0.0.1", port=8000, ssl_keyfile="key.pem", ssl_certfile="cert.pem")
+    uvicorn.run(
+        "sessionBasedLogic:app",
+        host="127.0.0.1",
+        port=8000,
+        ssl_ca_certs=r"./certs/myCA.pem",
+        ssl_keyfile=r"./certs/newPrivateKey.key",
+        ssl_certfile=r"./certs/newCert.crt",
+        reload=True,
+
+    )
+
+# uvicorn sessionBasedLogic:app --host 127.0.0.1 --port 8000 --ssl-ca-certs ./certs/myCA.pem --ssl-keyfile ./certs/newPrivateKey.key --ssl-certfile ./certs/newCert.crt
+

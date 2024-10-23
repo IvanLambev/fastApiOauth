@@ -8,15 +8,19 @@
 <body>
 <h1>Welcome to the Home Page,</h1>
 <!--Fetch the current user and display the username-->
-{% if current_user %}
-    <h2>{{ current_user.username }}</h2>
+
+{% if username %}
+    <p>Logged in as: {{ username }}</p>
+{% else %}
+    <p>Not logged in</p>
 {% endif %}
+
 <a href="/signup">Sign Up</a>
 <br>
 <a href="/login/github">Sign In with GitHub</a>
 <br>
 <a href="/login"> Log In</a>
 <br>
-<a href="http://127.0.0.1:8000/me"> Profile</a>
+<a href="/me"> Profile</a>
 </body>
 </html>
