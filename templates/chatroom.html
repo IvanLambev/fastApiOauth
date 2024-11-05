@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        .container { max-width: 800px; margin: auto; padding: 20px; }
+        .chat-box { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto; margin-bottom: 15px; }
+        .message-form, .chat-form { display: flex; gap: 5px; margin-bottom: 10px; }
+        .message-form input[type="text"], .chat-form input[type="text"] { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 8px 12px; border: none; background-color: #fb2650; color: white; cursor: pointer; }
+        button:hover { background-color: #e0214b; }
+        .chat-list { margin-bottom: 20px; }
+        .chat-list button { margin: 5px 0; }
+        .error { color: red; }
+    </style>
+    <script>
+        let currentChatUuid = null;
+        let messages = [];
+
+        async function loadMessages(chatUuid) {
+            currentChatUuid = chatUuid;
+            sessionStorage.setItem('current_chat_uuid', currentChatUuid);
+
+            try {
+                console.log("Loading messages for chat:", chatUuid);
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => {
+                    controller.abort(); // Abort the request after 5 seconds
+                    console.error("Load messages request timed out.");
+                    alert("Failed to load messages: Request timed out.");
+                }, 5000); // Set timeout duration
+
+                const response = await fetch('/chat_messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', signal: controller.signal }
+                });
+
+                clearTimeout(timeoutId); // Clear the timeout if the request completes in time
+                console.log("Timeout cleared.");
+                console.log("Response:", response);
+                // Check for a successful response
+                if (!response.ok) {
+                    console.error("Failed to load messages:", response.statusText);
+                    return;
+                }
+
+                messages = await response.json(); // Assign the response to `messages`
+
+                // Ensure `messages` is an array
+                if (!Array.isArray(messages)) {
+                    console.error("Expected an array but got:", messages);
+                    messages = []; // Default to an empty array if the response is not an array
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    console.error("Load messages request timed out.");
+                    alert("Failed to load messages: Request timed out.");
+                } else {
+                    console.error("Error loading messages:", error);
+                    alert("An error occurred while loading messages.");
+                }
+            }
+
+            // Update the chat box UI
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML = ''; // Clear previous messages
+
+            messages.forEach(msg => {
+                chatBox.innerHTML += `<p><strong>${msg.user}:</strong> ${msg.message}</p>`;
+            });
+        }
+
+        async function sendMessage(event) {
+            event.preventDefault();
+            const message = event.target.message.value;
+
+            if (!currentChatUuid) {
+                alert("Please select a chat first.");
+                return;
+            }
+
+            try {
+                console.log("Sending message:", { message: message, chat_uuid: currentChatUuid });
+
+                const response = await fetch('/send_message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message, chat_uuid: currentChatUuid })
+                });
+
+                // Check if the request was successful
+                if (!response.ok) {
+                    console.error("Failed to send message:", response.statusText);
+                    alert(`Error: ${response.statusText}`);
+                    return;
+                }
+
+                // Clear the input and reload messages if successful
+                event.target.message.value = '';
+                loadMessages(currentChatUuid);
+            } catch (error) {
+                console.error("Error in sendMessage:", error);
+                alert("An error occurred while sending the message.");
+            }
+        }
+
+        async function loadAvailableChats() {
+            try {
+                const response = await fetch('/available_chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+
+                // Check for a successful response
+                if (!response.ok) {
+                    console.error("Failed to load chats:", response.statusText);
+                    return;
+                }
+
+                const chats = await response.json();
+                const chatList = document.querySelector('.chat-list');
+                chatList.innerHTML = ''; // Clear existing chats
+                chats.forEach(chat => {
+                    chatList.innerHTML += `<button onclick="loadMessages('${chat.chat_id}');">Chat with ${chat.other_user}</button>`;
+                });
+            } catch (error) {
+                console.error("Error loading available chats:", error);
+            }
+        }
+
+        // Call this function when the page loads
+        window.onload = loadAvailableChats;
+    </script>
+</head>
+<body>
+
+<div class="container">
+    <h1>Welcome to the Chat Room</h1>
+
+    <!-- List of Available Chats -->
+    <div class="chat-list">
+        <h2>Your Chats</h2>
+        <!-- Chat buttons will be populated here -->
+    </div>
+
+    <!-- Chat Box Display -->
+    <div class="chat-box" id="chat-box">
+        <!-- Chat messages will be loaded here -->
+    </div>
+
+    <!-- Form to Send a Message -->
+    <form action="/send_message" method="post" class="message-form" onsubmit="sendMessage(event)">
+        <label>
+            <input type="text" name="message" placeholder="Type your message" required>
+        </label>
+        <button type="submit">Send</button>
+    </form>
+
+    <!-- Form to Create a New Chat -->
+    <form action="/create_chat" method="post" class="chat-form">
+        <label>
+            <input type="text" name="chat_with" placeholder="Start chat with username" required>
+        </label>
+        <button type="submit">Create Chat</button>
+    </form>
+
+</div>
+
+</body>
+</html>

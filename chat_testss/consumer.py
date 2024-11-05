@@ -2,7 +2,7 @@ import json
 from kafka import KafkaConsumer
 
 if __name__ == "__main__":
-    consumer = KafkaConsumer('messages', bootstrap_servers=['localhost:9092'], auto_offset_reset='earliest')
+    consumer = KafkaConsumer('beb4eab2-94af-11ef-b91d-ebf9455ff524', bootstrap_servers=['localhost:9092'], auto_offset_reset='earliest')
 
     for message in consumer:
         raw_message = message.value.decode('utf-8')

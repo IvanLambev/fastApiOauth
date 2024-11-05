@@ -238,5 +238,5 @@ if __name__ == "__main__":
 
     )
 
-# uvicorn sessionBasedLogic:app --host 127.0.0.1 --port 8000 --ssl-ca-certs ./certs/myCA.pem --ssl-keyfile ./certs/newPrivateKey.key --ssl-certfile ./certs/newCert.crt
+uvicorn sessionBasedLogic:app --host 127.0.0.1 --port 8000 --ssl-ca-certs ./certs/myCA.pem --ssl-keyfile ./certs/newPrivateKey.key --ssl-certfile ./certs/newCert.crt
 

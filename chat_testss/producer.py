@@ -17,6 +17,7 @@ if __name__ == "__main__":
     while True:
         message = generate_message()
         print(f"Producing message @ {datetime.now()}: {message}")
+
         producer.send("messages", message)
 
         time.sleep(random.randint(1, 5))
