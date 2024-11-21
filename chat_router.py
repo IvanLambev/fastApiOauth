@@ -19,22 +19,36 @@ from cassandra.cluster import Cluster
 from kafka import KafkaConsumer
 from aiokafka import AIOKafkaConsumer
 
-
 from pydantic import BaseModel
 
-cluster = Cluster(['127.0.0.1'], port=9042)
-session = cluster.connect('chat_app')
+# cluster = Cluster(['127.0.0.1'], port=9042)
+# session = cluster.connect('chat_app')
 from kafka.admin import KafkaAdminClient, NewTopic
 from kafka import KafkaProducer
 import json
 import uvicorn
 import configparser
-
+import os
 import asyncio
 import platform
 
 # Set up router
 router = APIRouter()
+
+
+def json_serializer(data):
+    return json.dumps(data).encode("utf-8")
+
+
+# Cassandra setup
+cassandra_host = os.getenv("CASSANDRA_HOST", "cassandra")
+cassandra_port = int(os.getenv("CASSANDRA_PORT", 9042))
+cluster = Cluster([cassandra_host], port=cassandra_port)
+session = cluster.connect()
+
+# kafka setup
+kafka_broker = os.getenv("KAFKA_BROKER", "kafka:9092")
+producer = KafkaProducer(bootstrap_servers=kafka_broker, value_serializer=json_serializer)
 
 
 def get_user_info(username: str):
@@ -77,11 +91,8 @@ def fetch_kafka_topics():
     return topics
 
 
-def json_serializer(data):
-    return json.dumps(data).encode("utf-8")
-
-
-producer = KafkaProducer(bootstrap_servers='localhost:9092', value_serializer=json_serializer)
+#
+# producer = KafkaProducer(bootstrap_servers='localhost:9092', value_serializer=json_serializer)
 
 
 def convert_to_tuple(data):
@@ -194,13 +205,18 @@ async def chat_messages(request: Request):
             str(chat_uuid),
             bootstrap_servers='localhost:9092',
             auto_offset_reset='earliest',
-            enable_auto_commit=True,
-            # Only decode if necessary
-            value_deserializer=lambda x: json.loads(x.decode('utf-8')) if isinstance(x, bytes) else json.loads(x),
-            consumer_timeout_ms=5000,
+            # enable_auto_commit=True,
+            # # Only decode if necessary
+            # # value_deserializer=lambda x: json.loads(x.decode('utf-8')) if isinstance(x, bytes) else json.loads(x),
+            # consumer_timeout_ms=5000,
         )
         await consumer.start()
+        print("Consumer started")
         messages = []
+        if not consumer:
+            return {"error": "Failed to start consumer"}
+        print("Consumer started")
+        print(f"Consumer: {consumer}")
 
         try:
             # Set a timeout for reading messages
@@ -208,6 +224,7 @@ async def chat_messages(request: Request):
             start_time = asyncio.get_event_loop().time()
 
             # Read messages asynchronously
+            print("Reading messages")
             async for message in consumer:
                 if len(messages) >= 20 or (asyncio.get_event_loop().time() - start_time) > read_timeout:
                     break
@@ -217,8 +234,10 @@ async def chat_messages(request: Request):
                 print(f"Raw message content: {message.value}")
 
                 try:
+                    print(f"Decoded message type: {type(message.value)} - {message.value}")
                     # Deserialize here, now it handles both bytes and str
-                    decoded_message = json.loads(message.value.decode('utf-8') if isinstance(message.value, bytes) else message.value)
+                    decoded_message = json.loads(
+                        message.value.decode('utf-8') if isinstance(message.value, bytes) else message.value)
                     messages.append(decoded_message)
                     print(f"Decoded message: {decoded_message}")
                 except json.JSONDecodeError:

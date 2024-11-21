@@ -2,7 +2,7 @@ import json
 from kafka import KafkaConsumer
 
 if __name__ == "__main__":
-    consumer = KafkaConsumer('beb4eab2-94af-11ef-b91d-ebf9455ff524', bootstrap_servers=['localhost:9092'], auto_offset_reset='earliest')
+    consumer = KafkaConsumer('c043e33e-9b98-11ef-9fa7-9fbed7e77acf', bootstrap_servers=['localhost:9092'])
 
     for message in consumer:
         raw_message = message.value.decode('utf-8')
@@ -16,3 +16,4 @@ if __name__ == "__main__":
             print(f"Consumed message: {decoded_message}")
         except json.JSONDecodeError as e:
             print(f"Failed to decode message: {valid_json_message} - Error: {e}")
+

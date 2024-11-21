@@ -1,0 +1,47 @@
+version: '3'
+
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    networks:
+      - app-network
+
+  kafka:
+    image: wurstmeister/kafka
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: kafka  # Use the service name so other containers can resolve it
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    networks:
+      - app-network
+
+  cassandra:
+    image: cassandra:latest
+    container_name: cassandra
+    ports:
+      - "9042:9042"  # Expose default Cassandra port
+    networks:
+      - app-network
+
+  fastapi-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi-app
+    ports:
+      - "8000:8000"
+    environment:
+      - KAFKA_BROKER=kafka:9092
+      - CASSANDRA_HOST=cassandra
+      - CASSANDRA_PORT=9042
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    external: true

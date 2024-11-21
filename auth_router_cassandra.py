@@ -7,13 +7,19 @@ from cassandra.query import SimpleStatement
 import configparser
 from starlette.templating import Jinja2Templates
 from cassandra.util import uuid_from_time
+from cassandra.cluster import Cluster
 from datetime import datetime
+import os
 # Set up router
 router = APIRouter()
 
 # Cassandra setup
-cluster = Cluster(['127.0.0.1'], port=9042)
-session = cluster.connect('chat_app')  # Connect to the keyspace
+# cluster = Cluster(['127.0.0.1'], port=9042)
+# session = cluster.connect('chat_app')  # Connect to the keyspace
+
+cassandra_host = os.getenv("CASSANDRA_HOST", "cassandra")
+cassandra_port = int(os.getenv("CASSANDRA_PORT", 9042))
+cluster = Cluster([cassandra_host], port=cassandra_port)
 
 # Jinja2 Templates
 templates = Jinja2Templates(directory="templates")
